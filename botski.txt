@@ -1,0 +1,98 @@
+#include <Wire.h>
+#include <SoftwareSerial.h>
+#include <Arduino.h>
+#include "MeOrion.h"
+
+MeDCMotor dc;
+MeUltrasonicSensor ultraSensor(PORT_3); /* Ultrasonic module can ONLY be connected to port 3, 4, 6, 7, 8 of base shield. */
+int moveSpeed = 100;
+float distance = 0.0;
+
+void Forward()
+{
+  dc.reset(M1);
+  dc.run(moveSpeed);
+  dc.reset(M2);
+  dc.run(-moveSpeed);
+}
+
+void Left()
+{
+  dc.reset(M1);
+  dc.run(moveSpeed);
+  dc.reset(M2);
+  dc.run(moveSpeed);
+}
+
+void Right()
+{
+  dc.reset(M1);
+  dc.run(-moveSpeed);
+  dc.reset(M2);
+  dc.run(-moveSpeed);
+}
+
+void Stop()
+{
+  dc.reset(M1);
+  dc.run(0);
+  dc.reset(M2);
+  dc.run(0);
+}
+
+void Turn_90left()
+{
+  float turnTime = 1.62;
+  float totalTime = 0.0;
+  float startTime = millis();
+  while ( totalTime < turnTime ) {
+    Left();
+    totalTime = (millis() - startTime)/1000.0;
+  }
+}
+
+void Turn_90right()
+{
+  float turnTime = 1.62;
+  float totalTime = 0.0;
+  float startTime = millis();
+  while ( totalTime < turnTime ) {
+    Right();
+    totalTime = (millis() - startTime)/1000.0;
+  }
+}
+
+void ChooseTurn()
+{
+  Turn_90left();
+  float leftDistance = ultraSensor.distanceCm();
+  Turn_90right();
+  Turn_90right();
+  float rightDistance = ultraSensor.distanceCm();
+  Turn_90left();
+
+  if  ( leftDistance > rightDistance ) {
+      Turn_90left();
+    } else {
+      Turn_90right();
+      }
+}
+
+void setup()
+{
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  Serial.print("Distance : ");
+  Serial.print(ultraSensor.distanceCm() );
+  Serial.println(" cm");
+  delay(100); /* the minimal measure interval is 100 milliseconds */
+  distance = ultraSensor.distanceCm();
+  if ( distance > 10) {
+      Forward();
+    } else {
+      ChooseTurn();
+      }
+}
